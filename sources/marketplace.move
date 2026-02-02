@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Bima Kharisma Wicaksana
+ * Copyright (c) 2025 Bima Kharisma Wicaksana
  * GitHub: https://github.com/bimakw
  *
  * Licensed under MIT License with Attribution Requirement.
@@ -148,7 +148,7 @@ module sui_nft_marketplace::marketplace {
 
         if (royalty_fee > 0) {
             let royalty_coin = coin::split(&mut payment, royalty_fee, ctx);
-            transfer::public_transfer(royalty_coin, nft::collection_name(collection)); // In real impl, use creator address
+            transfer::public_transfer(royalty_coin, nft::collection_creator(collection));
         };
 
         let seller_coin = coin::split(&mut payment, seller_amount, ctx);
@@ -162,7 +162,7 @@ module sui_nft_marketplace::marketplace {
         };
 
         // Extract and transfer NFT
-        let Listing { id, nft_id, seller, price: _, collection_id: _ } = listing;
+        let Listing { mut id, nft_id, seller, price: _, collection_id: _ } = listing;
         let nft: CollectionNFT = dof::remove(&mut id, true);
 
         marketplace.total_volume = marketplace.total_volume + price;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Bima Kharisma Wicaksana
+ * Copyright (c) 2025 Bima Kharisma Wicaksana
  * GitHub: https://github.com/bimakw
  *
  * Licensed under MIT License with Attribution Requirement.
@@ -289,6 +289,7 @@ module sui_nft_marketplace::nft {
     public fun collection_id(nft: &CollectionNFT): ID { nft.collection_id }
 
     public fun collection_name(collection: &Collection): String { collection.name }
+    public fun collection_creator(collection: &Collection): address { collection.creator }
     public fun total_supply(collection: &Collection): u64 { collection.total_supply }
     public fun max_supply(collection: &Collection): u64 { collection.max_supply }
     public fun royalty_bps(collection: &Collection): u64 { collection.royalty_bps }
