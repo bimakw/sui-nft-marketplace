@@ -1,13 +1,3 @@
-/*
- * Copyright (c) 2025 Bima Kharisma Wicaksana
- * GitHub: https://github.com/bimakw
- *
- * Licensed under MIT License with Attribution Requirement.
- * See LICENSE file for details.
- */
-
-/// NFT Module - ERC-721 equivalent for Sui blockchain.
-/// Supports minting, transfers, and collection management.
 module sui_nft_marketplace::nft {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
@@ -18,10 +8,8 @@ module sui_nft_marketplace::nft {
     use sui::display;
     use std::string::{Self, String};
 
-    /// One-Time-Witness for Display
     public struct NFT has drop {}
 
-    /// NFT object
     public struct CollectionNFT has key, store {
         id: UID,
         name: String,
@@ -33,13 +21,11 @@ module sui_nft_marketplace::nft {
         attributes: vector<Attribute>,
     }
 
-    /// NFT Attribute (trait)
     public struct Attribute has store, copy, drop {
         key: String,
         value: String,
     }
 
-    /// Collection metadata
     public struct Collection has key {
         id: UID,
         name: String,
@@ -50,13 +36,11 @@ module sui_nft_marketplace::nft {
         royalty_bps: u64, // Basis points (100 = 1%)
     }
 
-    /// Mint capability for a collection
     public struct MintCap has key, store {
         id: UID,
         collection_id: ID,
     }
 
-    /// Events
     public struct NFTMinted has copy, drop {
         nft_id: ID,
         collection_id: ID,
@@ -83,11 +67,9 @@ module sui_nft_marketplace::nft {
         max_supply: u64,
     }
 
-    /// Error codes
     const EMaxSupplyReached: u64 = 0;
     const ENotMintCap: u64 = 1;
 
-    /// Initialize display template
     fun init(otw: NFT, ctx: &mut TxContext) {
         let keys = vector[
             string::utf8(b"name"),
@@ -115,7 +97,6 @@ module sui_nft_marketplace::nft {
         transfer::public_transfer(display, tx_context::sender(ctx));
     }
 
-    /// Create a new collection
     public entry fun create_collection(
         name: vector<u8>,
         description: vector<u8>,
@@ -151,7 +132,6 @@ module sui_nft_marketplace::nft {
         transfer::transfer(mint_cap, creator);
     }
 
-    /// Mint NFT from collection
     public entry fun mint(
         mint_cap: &MintCap,
         collection: &mut Collection,
@@ -189,7 +169,6 @@ module sui_nft_marketplace::nft {
         transfer::public_transfer(nft, recipient);
     }
 
-    /// Mint with attributes
     public entry fun mint_with_attributes(
         mint_cap: &MintCap,
         collection: &mut Collection,
@@ -240,7 +219,6 @@ module sui_nft_marketplace::nft {
         transfer::public_transfer(nft, recipient);
     }
 
-    /// Transfer NFT
     public entry fun transfer_nft(
         nft: CollectionNFT,
         recipient: address,
@@ -257,7 +235,6 @@ module sui_nft_marketplace::nft {
         transfer::public_transfer(nft, recipient);
     }
 
-    /// Burn NFT
     public entry fun burn(nft: CollectionNFT, ctx: &TxContext) {
         let sender = tx_context::sender(ctx);
 
@@ -280,7 +257,6 @@ module sui_nft_marketplace::nft {
         object::delete(id);
     }
 
-    /// View functions
     public fun name(nft: &CollectionNFT): String { nft.name }
     public fun description(nft: &CollectionNFT): String { nft.description }
     public fun image_url(nft: &CollectionNFT): Url { nft.image_url }

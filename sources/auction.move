@@ -1,13 +1,3 @@
-/*
- * Copyright (c) 2025 Bima Kharisma Wicaksana
- * GitHub: https://github.com/bimakw
- *
- * Licensed under MIT License with Attribution Requirement.
- * See LICENSE file for details.
- */
-
-/// Auction Module - English auction for NFTs on Sui.
-/// Supports time-based auctions with bid increments.
 module sui_nft_marketplace::auction {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
@@ -21,7 +11,6 @@ module sui_nft_marketplace::auction {
 
     use sui_nft_marketplace::nft::CollectionNFT;
 
-    /// Error codes
     const EAuctionNotStarted: u64 = 0;
     const EAuctionEnded: u64 = 1;
     const EAuctionNotEnded: u64 = 2;
@@ -30,10 +19,8 @@ module sui_nft_marketplace::auction {
     const ENoBids: u64 = 5;
     const EAuctionActive: u64 = 6;
 
-    /// Minimum bid increment (5%)
     const MIN_BID_INCREMENT_BPS: u64 = 500;
 
-    /// Auction object
     public struct Auction has key {
         id: UID,
         nft_id: ID,
@@ -47,7 +34,6 @@ module sui_nft_marketplace::auction {
         finalized: bool,
     }
 
-    /// Events
     public struct AuctionCreated has copy, drop {
         auction_id: ID,
         nft_id: ID,
@@ -76,7 +62,6 @@ module sui_nft_marketplace::auction {
         nft_id: ID,
     }
 
-    /// Create auction for NFT
     public entry fun create_auction(
         nft: CollectionNFT,
         start_price: u64,
@@ -102,7 +87,6 @@ module sui_nft_marketplace::auction {
             finalized: false,
         };
 
-        // Store NFT in auction
         dof::add(&mut auction.id, true, nft);
 
         event::emit(AuctionCreated {
@@ -117,7 +101,6 @@ module sui_nft_marketplace::auction {
         transfer::share_object(auction);
     }
 
-    /// Place a bid
     public entry fun place_bid(
         auction: &mut Auction,
         mut payment: Coin<SUI>,
@@ -133,7 +116,6 @@ module sui_nft_marketplace::auction {
 
         let bid_amount = coin::value(&payment);
 
-        // Calculate minimum bid
         let min_bid = if (auction.current_bid == 0) {
             auction.start_price
         } else {
@@ -142,7 +124,6 @@ module sui_nft_marketplace::auction {
 
         assert!(bid_amount >= min_bid, EBidTooLow);
 
-        // Refund previous bidder
         let previous_bidder = auction.highest_bidder;
         let previous_bid = auction.current_bid;
 
@@ -154,14 +135,12 @@ module sui_nft_marketplace::auction {
             transfer::public_transfer(refund, previous_bidder);
         };
 
-        // Accept new bid
         let bid_balance = coin::into_balance(coin::split(&mut payment, bid_amount, ctx));
         balance::join(&mut auction.bid_balance, bid_balance);
 
         auction.current_bid = bid_amount;
         auction.highest_bidder = bidder;
 
-        // Return excess payment
         if (coin::value(&payment) > 0) {
             transfer::public_transfer(payment, bidder);
         } else {
@@ -177,7 +156,6 @@ module sui_nft_marketplace::auction {
         });
     }
 
-    /// Finalize auction after end time
     public entry fun finalize(
         auction: &mut Auction,
         clock: &Clock,
@@ -191,14 +169,12 @@ module sui_nft_marketplace::auction {
 
         auction.finalized = true;
 
-        // Transfer payment to seller
         let payment = coin::from_balance(
             balance::withdraw_all(&mut auction.bid_balance),
             ctx
         );
         transfer::public_transfer(payment, auction.seller);
 
-        // Transfer NFT to winner
         let nft: CollectionNFT = dof::remove(&mut auction.id, true);
 
         event::emit(AuctionFinalized {
@@ -210,7 +186,6 @@ module sui_nft_marketplace::auction {
         transfer::public_transfer(nft, auction.highest_bidder);
     }
 
-    /// Cancel auction (only if no bids)
     public entry fun cancel_auction(
         auction: Auction,
         ctx: &TxContext
@@ -246,7 +221,6 @@ module sui_nft_marketplace::auction {
         transfer::public_transfer(nft, seller);
     }
 
-    /// View functions
     public fun get_current_bid(auction: &Auction): u64 { auction.current_bid }
     public fun get_highest_bidder(auction: &Auction): address { auction.highest_bidder }
     public fun get_end_time(auction: &Auction): u64 { auction.end_time }

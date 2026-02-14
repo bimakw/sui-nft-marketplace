@@ -1,13 +1,3 @@
-/*
- * Copyright (c) 2025 Bima Kharisma Wicaksana
- * GitHub: https://github.com/bimakw
- *
- * Licensed under MIT License with Attribution Requirement.
- * See LICENSE file for details.
- */
-
-/// Marketplace Module - Decentralized NFT marketplace on Sui.
-/// Supports listings, purchases, and royalty distribution.
 module sui_nft_marketplace::marketplace {
     use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
@@ -19,16 +9,13 @@ module sui_nft_marketplace::marketplace {
 
     use sui_nft_marketplace::nft::{Self, CollectionNFT, Collection};
 
-    /// Error codes
     const ENotOwner: u64 = 0;
     const EInsufficientPayment: u64 = 1;
     const EListingNotActive: u64 = 2;
     const EInvalidPrice: u64 = 3;
 
-    /// Marketplace fee in basis points (250 = 2.5%)
     const MARKETPLACE_FEE_BPS: u64 = 250;
 
-    /// Marketplace state
     public struct Marketplace has key {
         id: UID,
         fee_recipient: address,
@@ -36,7 +23,6 @@ module sui_nft_marketplace::marketplace {
         total_listings: u64,
     }
 
-    /// Listing object that holds the NFT
     public struct Listing has key, store {
         id: UID,
         nft_id: ID,
@@ -45,7 +31,6 @@ module sui_nft_marketplace::marketplace {
         collection_id: ID,
     }
 
-    /// Events
     public struct ItemListed has copy, drop {
         listing_id: ID,
         nft_id: ID,
@@ -74,7 +59,6 @@ module sui_nft_marketplace::marketplace {
         new_price: u64,
     }
 
-    /// Initialize marketplace
     fun init(ctx: &mut TxContext) {
         let marketplace = Marketplace {
             id: object::new(ctx),
@@ -86,7 +70,6 @@ module sui_nft_marketplace::marketplace {
         transfer::share_object(marketplace);
     }
 
-    /// List NFT for sale
     public entry fun list(
         marketplace: &mut Marketplace,
         nft: CollectionNFT,
@@ -107,7 +90,6 @@ module sui_nft_marketplace::marketplace {
             collection_id,
         };
 
-        // Store NFT in listing using dynamic object field
         dof::add(&mut listing.id, true, nft);
 
         marketplace.total_listings = marketplace.total_listings + 1;
@@ -123,7 +105,6 @@ module sui_nft_marketplace::marketplace {
         transfer::share_object(listing);
     }
 
-    /// Purchase listed NFT
     public entry fun buy(
         marketplace: &mut Marketplace,
         listing: Listing,
@@ -136,13 +117,11 @@ module sui_nft_marketplace::marketplace {
 
         assert!(payment_amount >= listing.price, EInsufficientPayment);
 
-        // Calculate fees
         let price = listing.price;
         let marketplace_fee = (price * MARKETPLACE_FEE_BPS) / 10000;
         let royalty_fee = (price * nft::royalty_bps(collection)) / 10000;
         let seller_amount = price - marketplace_fee - royalty_fee;
 
-        // Split and distribute payments
         let marketplace_coin = coin::split(&mut payment, marketplace_fee, ctx);
         transfer::public_transfer(marketplace_coin, marketplace.fee_recipient);
 
@@ -154,14 +133,12 @@ module sui_nft_marketplace::marketplace {
         let seller_coin = coin::split(&mut payment, seller_amount, ctx);
         transfer::public_transfer(seller_coin, listing.seller);
 
-        // Return excess payment
         if (coin::value(&payment) > 0) {
             transfer::public_transfer(payment, buyer);
         } else {
             coin::destroy_zero(payment);
         };
 
-        // Extract and transfer NFT
         let Listing { mut id, nft_id, seller, price: _, collection_id: _ } = listing;
         let nft: CollectionNFT = dof::remove(&mut id, true);
 
@@ -179,7 +156,6 @@ module sui_nft_marketplace::marketplace {
         transfer::public_transfer(nft, buyer);
     }
 
-    /// Cancel listing and reclaim NFT
     public entry fun delist(
         listing: Listing,
         ctx: &TxContext
@@ -200,7 +176,6 @@ module sui_nft_marketplace::marketplace {
         transfer::public_transfer(nft, sender);
     }
 
-    /// Update listing price
     public entry fun update_price(
         listing: &mut Listing,
         new_price: u64,
@@ -220,7 +195,6 @@ module sui_nft_marketplace::marketplace {
         });
     }
 
-    /// View functions
     public fun get_price(listing: &Listing): u64 { listing.price }
     public fun get_seller(listing: &Listing): address { listing.seller }
     public fun get_nft_id(listing: &Listing): ID { listing.nft_id }
